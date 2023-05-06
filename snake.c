@@ -107,8 +107,8 @@ _Noreturn void *boosterGenerator(__attribute__((unused)) void *arg) {
     sleep(sleepDuration);
     int x, y;
     do {
-        x = rand() % MAP_WIDTH + INITIAL_MAP_TOP_LEFT_CORNER_X + 1;
-        y = rand() % MAP_HEIGHT + INITIAL_MAP_TOP_LEFT_CORNER_Y + 1;
+        x = rand() % (MAP_WIDTH - 1) + INITIAL_MAP_TOP_LEFT_CORNER_X + 1;
+        y = rand() % (MAP_HEIGHT - 1) + INITIAL_MAP_TOP_LEFT_CORNER_Y + 1;
     } while (checkIfFieldFree(x, y));
 
     booster->x = x;
@@ -233,8 +233,8 @@ void drawInstruction(void) {
 void generateApple(void) {
     int x, y;
     do {
-        x = rand() % (MAP_WIDTH - 1) + INITIAL_MAP_TOP_LEFT_CORNER_X;
-        y = rand() % (MAP_HEIGHT - 1) + INITIAL_MAP_TOP_LEFT_CORNER_Y;
+        x = rand() % (MAP_WIDTH - 1) + INITIAL_MAP_TOP_LEFT_CORNER_X + 1;
+        y = rand() % (MAP_HEIGHT - 1) + INITIAL_MAP_TOP_LEFT_CORNER_Y + 1;
     } while (checkIfFieldFree(x, y));
 
     apple->x = x;
