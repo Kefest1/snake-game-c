@@ -109,7 +109,7 @@ int detectCollision(void);
 int didEatBooster(void);
 void stopBooster(__attribute__((unused)) union sigval sv);
 int showWelcomeScreen(void);
-void markOption(int choise);
+void markOption(int choice);
 void nicknameEnter(void);
 FILE *createOrOpenFile(void);
 int count_lines(FILE *file);

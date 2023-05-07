@@ -16,7 +16,7 @@ int currentSnakeDirection = KEY_RIGHT;
 pthread_mutex_t snakeDirectionMutex;
 pthread_mutex_t terminalMutex;
 
-static volatile int roundDuration = 50000u;
+static volatile unsigned roundDuration = 50000u;
 static volatile int isDoubled = 0;
 
 player_record_t playerRecord[5];
@@ -143,7 +143,7 @@ void gameOverScreen(int didWon) {
     else
         mvprintw(11, 50, "You got %d points!", statistics->applesEaten);
     mvprintw(13, 50, "Press any key to continue", statistics->applesEaten);
-    
+
     refresh();
     getch();
 }
@@ -428,15 +428,15 @@ void updateSnakePointPosition(void) {
 
 }
 
-void markOption(int choise) {
+void markOption(int choice) {
     attroff(A_REVERSE);
     mvprintw(7, 5, "New Game");
     mvprintw(8, 5, "Records (TODO)");
     mvprintw(9, 5, "Quit");
     attron(A_REVERSE);
-    if (choise == 0)
+    if (choice == 0)
         mvprintw(7, 5, "New Game");
-    else if (choise == 1)
+    else if (choice == 1)
         mvprintw(8, 5, "Records (TODO)");
     else
         mvprintw(9, 5, "Quit");
