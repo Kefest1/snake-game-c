@@ -15,8 +15,10 @@
 #include <signal.h>
 #include <time.h>
 #include <semaphore.h>
+#include <ctype.h>
 
 #define INITIAL_SIZE 3
+#define MAX_NICKNAME_LEN 12
 
 #define INITIAL_MAP_TOP_LEFT_CORNER_X 45
 #define INITIAL_MAP_TOP_LEFT_CORNER_Y 0
@@ -77,6 +79,10 @@ typedef struct {
     time_t duration;
 } booster_t;
 
+typedef struct {
+    char player[MAX_NICKNAME_LEN + 1];
+    int record;
+} player_record_t;
 
 int startGame(void);
 struct linked_list_t *createSnake(void);
@@ -104,5 +110,15 @@ int didEatBooster(void);
 void stopBooster(__attribute__((unused)) union sigval sv);
 int showWelcomeScreen(void);
 void markOption(int choise);
+void nicknameEnter(void);
+FILE *createOrOpenFile(void);
+int count_lines(FILE *file);
+void readFromFile(void);
+void saveStructToFile(void);
+int findMin(void);
+int isNewRecord(int best);
+void replaceMin(const char *nickname, int record);
+int newRecord(void);
+void gameOverScreen(int didWon);
 
 #endif //SNAKE_SNAKE_H

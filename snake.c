@@ -11,13 +11,15 @@ pthread_t game, input, gameTimer, boosterThread, endGameThread;
 
 sem_t boosterSemaphore;
 sem_t endGameSemaphore;
-
+char *nickname;
 int currentSnakeDirection = KEY_RIGHT;
 pthread_mutex_t snakeDirectionMutex;
 pthread_mutex_t terminalMutex;
 
 static volatile int roundDuration = 50000u;
 static volatile int isDoubled = 0;
+
+player_record_t playerRecord[5];
 
 booster_t *booster;
 
@@ -124,9 +126,26 @@ _Noreturn void *boosterGenerator(__attribute__((unused)) void *arg) {
 
 void *waitForGameOver(__attribute__((unused)) void *arg) {
     sem_wait(&endGameSemaphore);
+
     endGame();
+    gameOverScreen(newRecord());
+
     endwin();
     return NULL;
+}
+
+void gameOverScreen(int didWon) {
+    mvprintw(10, 50, "Game over!");
+    if (didWon) {
+        mvprintw(11, 50, "New best score!");
+        mvprintw(12, 50, "You've got %d points!", statistics->applesEaten);
+    }
+    else
+        mvprintw(11, 50, "You got %d points!", statistics->applesEaten);
+    mvprintw(13, 50, "Press any key to continue", statistics->applesEaten);
+    
+    refresh();
+    getch();
 }
 
 void printStatistics() {
@@ -157,6 +176,13 @@ void drawArrow(int index) {
     pthread_mutex_unlock(&terminalMutex);
 }
 
+void clearArrow(void) {
+    for (int i = 0; i < ARROW_HEIGHT + 10; i++)
+        mvprintw(ARROW_TOP_LEFT_CORNER_Y + i, ARROW_TOP_LEFT_CORNER_X, "                   ");
+
+    refresh();
+}
+
 void drawUpArrow(void) {
 
     mvprintw(ARROW_TOP_LEFT_CORNER_Y + 0, ARROW_TOP_LEFT_CORNER_X, "      /\\");
@@ -168,13 +194,6 @@ void drawUpArrow(void) {
     mvprintw(ARROW_TOP_LEFT_CORNER_Y + 6, ARROW_TOP_LEFT_CORNER_X, "      ||\n");
     mvprintw(ARROW_TOP_LEFT_CORNER_Y + 7, ARROW_TOP_LEFT_CORNER_X, "      ||\n");
     mvprintw(ARROW_TOP_LEFT_CORNER_Y + 8, ARROW_TOP_LEFT_CORNER_X, "      ||\n");
-    refresh();
-}
-
-void clearArrow(void) {
-    for (int i = 0; i < ARROW_HEIGHT + 10; i++)
-        mvprintw(ARROW_TOP_LEFT_CORNER_Y + i, ARROW_TOP_LEFT_CORNER_X, "                   ");
-
     refresh();
 }
 
@@ -372,7 +391,6 @@ void moveSnake(void) {
     refresh();
 }
 
-
 static void transferPosition(const struct node_t *sourceComponent, struct node_t *destComponent) {
     if (sourceComponent == NULL || destComponent == NULL)
         return;
@@ -478,9 +496,45 @@ int showWelcomeScreen(void) {
     return 0;
 }
 
+void nicknameEnter(void) {
+    initscr();
+    mvprintw(5, 5, "Enter nickname:");
+    box(stdscr, '|', '-');
+    refresh();
+    keypad(stdscr, TRUE);
+    curs_set(FALSE);
+    noecho();
+
+    int ch, currentLen = 0, pos = 5;
+    nickname = calloc(MAX_NICKNAME_LEN + 1, sizeof(char));
+
+    while (currentLen < MAX_NICKNAME_LEN) {
+        ch = getch();
+
+        if (ch == 10)
+            break;
+        if (!isalpha(ch))
+            continue;
+
+        mvaddch(6, pos++, ch);
+        *(nickname + currentLen++) = (char) ch;
+    }
+
+    *(nickname + currentLen) = '\x0';
+    mvprintw(7, 5, "Press any key to start to start:");
+    refresh();
+    getch();
+    clear();
+    endwin();
+}
+
 int startGame(void) {
     if (showWelcomeScreen())
         return EXIT_SUCCESS;
+
+    nicknameEnter();
+
+    readFromFile();
 
     srand((unsigned int) time(NULL));
 
@@ -591,4 +645,88 @@ struct linked_list_t *createSnake(void) {
     snake = listCreate();
 
     return snake;
+}
+FILE *createOrOpenFile(void) {
+    FILE *fp = fopen("../records.txt", "rt");
+    if (!fp)
+        fp = fopen("../records.txt", "wt");
+
+    return fp;
+}
+
+int count_lines(FILE *file) {
+    int count = 0;
+    int ch ;
+    while ((ch = fgetc(file)) != EOF)
+        if (ch == '\n')
+            count++;
+
+    fseek(file, SEEK_SET, 0);
+    return count;
+}
+
+void readFromFile(void) {
+    FILE *fp = createOrOpenFile();
+    int size = count_lines(fp);
+
+    for (int i = 0; i < size; i++) {
+        fscanf(fp, "%[^:]", (*(playerRecord + i)).player);
+        fgetc(fp);fgetc(fp);
+        fscanf(fp, "%d\n", &(playerRecord + i)->record);
+    }
+
+
+    for (int i = size; i < 5; i++) {
+        (playerRecord + i)->record = -1;
+        *(playerRecord + i)->player = '\x0';
+    }
+    fclose(fp);
+}
+
+void saveStructToFile(void) {
+    FILE *fp = fopen("../records.txt", "wt");
+
+    for (int i = 0; i < 5; i++) {
+        if ((playerRecord + i)->record == -1)
+            continue;
+        fprintf(fp, "%s: %d\n", (playerRecord + i)->player, (playerRecord + i)->record);
+    }
+}
+
+
+int findMin(void) {
+    int min = playerRecord->record;
+    int index = 0;
+    for (int i = 1; i < 5; i++) {
+        if (min > (playerRecord + i)->record) {
+            min = (playerRecord + i)->record;
+            index = i;
+        }
+    }
+
+    return index;
+}
+
+int isNewRecord(int best) {
+    for (int i = 0; i < 5; i++) {
+        if (best > (playerRecord + i)->record)
+            return 1;
+    }
+    return 0;
+}
+
+void replaceMin(const char *nickname, int record) {
+    int index = findMin();
+    (playerRecord + index)->record = record;
+    strcpy((playerRecord + index)->player, nickname);
+}
+
+int newRecord(void) {
+    if (isNewRecord(statistics->applesEaten)) {
+        replaceMin(nickname, statistics->applesEaten);
+        saveStructToFile();
+        return 1;
+    }
+
+    return 0;
 }
